@@ -9,7 +9,7 @@ class CasesService():
         self.cases_repo = cases_repo
         self.deadlines_repo = deadlines_repo
 
-    def _is_valid_date(date_string: str) -> bool:
+    def _is_valid_date(self, date_string: str) -> bool:
         """Checks if a string is a valid YYYY-MM-DD date."""
         if not date_string:
             return True # Allow empty/None dates

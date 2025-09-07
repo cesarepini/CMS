@@ -9,13 +9,12 @@ class BaseRepo:
     def __init__(self, table_name:str, db_handler: DatabaseHandler):
         self.db_handler = db_handler
         self.table_name = table_name
-        self.allowed_field_names = []
+        self.allowed_columns = []
 
     def _validate_field_names(self, field_names: List[str]) -> None | ValueError:
         for field_name in field_names:
             if field_name not in self.allowed_field_names:
-                return ValueError(f'Disallowed field name {field_name}')
-        pass
+                raise ValueError(f'Disallowed field name {field_name}')
 
     def _run_query(
             self,
