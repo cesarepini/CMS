@@ -9,6 +9,13 @@ class BaseRepo:
     def __init__(self, table_name:str, db_handler: DatabaseHandler):
         self.db_handler = db_handler
         self.table_name = table_name
+        self.allowed_field_names = []
+
+    def _validate_field_names(self, field_names: List[str]) -> None | ValueError:
+        for field_name in field_names:
+            if field_name not in self.allowed_field_names:
+                return ValueError(f'Disallowed field name {field_name}')
+        pass
 
     def _run_query(
             self,
@@ -37,8 +44,12 @@ class BaseRepo:
             return (False, e)
         
     def _get_record_by_id(self, id_field:str, id_value:int) -> Tuple[bool, Union[dict, None, Exception]]:
-        query = f'SELECT * FROM {self.table_name} WHERE {id_field} = ?'
-        return self._run_query_one(query, (id_value,))
+        try:
+            self._validate_field_names([id_field])
+            query = f'SELECT * FROM {self.table_name} WHERE {id_field} = ?'
+            return self._run_query_one(query, (id_value,))
+        except (ValueError, sqlite3.Error) as e:
+            return (False, e)
 
     def _run_modify(
             self,
@@ -58,27 +69,29 @@ class BaseRepo:
             self,
             data:dict
             ) -> Tuple[bool, Union[int, Exception]]:
-        columns = ", ".join(data.keys())
-        placeholders = ", ".join("?" for _ in data)
-        values = tuple(data.values())
-        query = f"INSERT INTO {self.table_name} ({columns}) VALUES ({placeholders})"
-        return self._run_modify(query, values)
+        try:
+            field_names = list(data.keys())
+            self._validate_field_names(field_names)
+            columns = ", ".join(data.keys())
+            placeholders = ", ".join("?" for _ in data)
+            values = tuple(data.values())
+            query = f"INSERT INTO {self.table_name} ({columns}) VALUES ({placeholders})"
+            return self._run_modify(query, values)
+        except (ValueError, sqlite3.Error) as e:
+            return (False, e)
         
     def update_by_id(self,
                     id_field: str,
                     id_value: int,
                     updates: dict
                     ) -> Tuple[bool, Union[int, Exception]]:
-        set_clause = ", ".join([f"{col}=?" for col in updates.keys()])
-        values = tuple(updates.values()) + (id_value,)
-        query = f"UPDATE {self.table_name} SET {set_clause} WHERE {id_field} = ?"
-        return self._run_modify(query, values)
-
-    # TODO: block this function for most tables    
-    def delete_by_id(
-            self,
-            id_field: str,
-            id_value: int
-            ) -> Tuple[bool, Union[int, Exception]]:
-        query = f"DELETE FROM {self.table_name} WHERE {id_field} = ?"
-        return self._run_modify(query, (id_value,))
+        try:
+            field_names = list(updates.keys())
+            field_names.append(id_field)
+            self._validate_field_names(field_names)
+            set_clause = ", ".join([f"{col}=?" for col in updates.keys()])
+            values = tuple(updates.values()) + (id_value,)
+            query = f"UPDATE {self.table_name} SET {set_clause} WHERE {id_field} = ?"
+            return self._run_modify(query, values)
+        except (ValueError, sqlite3.Error) as e:
+            return (False, e)

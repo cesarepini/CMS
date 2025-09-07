@@ -9,6 +9,26 @@ class CasesRepo(BaseRepo):
     def __init__(self, db_handler: DatabaseHandler):
         super().__init__('Cases', db_handler)
 
+        self.allowed_columns = [
+            'case_id',
+            'case_type',
+            'procedure_type',
+            'ipr_type',
+            'client_id',
+            'client_ref',
+            'title',
+            'address',
+            'jurisdiction',
+            'filing_date',
+            'filing_number',
+            'status',
+            'notes',
+            'is_open',
+            'created_at',
+            'updated_at',
+            'closed_at'
+        ]
+
     def get_all_cases(self) -> Tuple[bool, Union[List[Dict], Exception]]:
         return self._run_query(
             f'SELECT * FROM {self.table_name}'

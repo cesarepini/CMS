@@ -7,6 +7,18 @@ from database_handler.database_handler import DatabaseHandler
 class DeadlinesRepo(BaseRepo):
     def __init__(self, db_handler: DatabaseHandler):
         super().__init__('Deadlines', db_handler)
+        self.allowed_columns = [
+            'deadline_id',
+            'case_id',
+            'description',
+            'due_date',
+            'deadline_type',
+            'status',
+            'completed',
+            'created_at',
+            'updated_at',
+            'deactivated_at'
+        ]
 
     def get_all_deadlines(self) -> Tuple[bool, Union[List[Dict], Exception]]:
         return self._run_query(

@@ -7,6 +7,24 @@ from database_handler.database_handler import DatabaseHandler
 class ClientsRepo(BaseRepo):
     def __init__(self, db_handler: DatabaseHandler):
         super().__init__("Clients", db_handler)
+        self.allowed_columns = [
+            'client_id',
+            'client_code',
+            'name',
+            'address',
+            'zip_code',
+            'city',
+            'country',
+            'email',
+            'phone',
+            'vat_number',
+            'payment_term',
+            'notes',
+            'is_active',
+            'created_at',
+            'updated_at',
+            'deactivated_at'
+        ]
 
     # --- Querying functions --- #
     def get_all_clients(self) -> Tuple[bool, Union[List[Dict], Exception]]:

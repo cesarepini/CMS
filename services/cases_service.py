@@ -9,6 +9,29 @@ class CasesService():
         self.cases_repo = cases_repo
         self.deadlines_repo = deadlines_repo
 
+    def _is_valid_date(date_string: str) -> bool:
+        """Checks if a string is a valid YYYY-MM-DD date."""
+        if not date_string:
+            return True # Allow empty/None dates
+        try:
+            datetime.strptime(date_string, '%Y-%m-%d')
+            return True
+        except ValueError:
+            return False
+        
+    def _validate_case_data(self, case_data: dict) -> List[str]:
+        """Validates case data, returning a list of error messages."""
+        errors = []
+        if not case_data.get('client_id'):
+            errors.append('Client ID is required.')
+        if not case_data.get('client_ref'):
+            errors.append('Client ref is required.')
+        if case_data.get('jurisdiction') and len(case_data['jurisdiction']) != 2:
+            errors.append('Jurisdiction must be two letters according to WIPO standard.')
+        if not self._is_valid_date(case_data.get('filing_date')):
+            errors.append('Filing date must be in YYYY-MM-DD format.')
+        return errors
+
     def get_all_cases(self) -> Tuple[bool, Union[List[Dict], Exception]]:
         return self.cases_repo.get_all_cases()
     
@@ -39,12 +62,9 @@ class CasesService():
         return self.cases_repo.get_case_by_id(case_id, 'case_id')
     
     def insert_case(self, case_data: dict) -> Tuple[bool, Union[Dict, None, Exception]]:
-        if 'client_id' not in case_data or not case_data['client_id']:
-            return (False, ValueError('Client ID is required.'))
-        if 'client_ref' not in case_data or not case_data['client_ref']:
-            return (False, ValueError('Client ref is required.'))
-        if case_data['jurisdiction'] != None and len(case_data['jurisdiction']) != 2:
-            return (False, ValueError('Jurisdiction must be two letters according to WIPO standard.'))
+        errors = self._validate_case_data(case_data)
+        if errors:
+            return (False, ValueError('/'.join(errors)))
         optional_fields = [
             'case_type', 'procedure_type', 'ipr_type',
             'title', 'jurisdiction', 'filing_date',
@@ -62,12 +82,9 @@ class CasesService():
     def update_case(self, case_data: dict) -> Tuple[bool, Union[Dict, None, Exception]]:
         if 'case_id' not in case_data or not case_data['case_id']:
             return (False, ValueError('Case ID is required.'))
-        if 'client_id' not in case_data or not case_data['client_id']:
-            return (False, ValueError('Client ID is required.'))
-        if 'client_ref' not in case_data or not case_data['client_ref']:
-            return (False, ValueError('Client ref is required.'))
-        if case_data['jurisdiction'] != None and len(case_data['jurisdiction']) != 2:
-            return (False, ValueError('Jurisdiction must be two letters according to WIPO standard.'))
+        errors = self._validate_case_data(case_data)
+        if errors:
+            return (False, ValueError('/'.join(errors)))
         optional_fields = [
             'case_type', 'procedure_type', 'ipr_type',
             'title', 'jurisdiction', 'filing_date',

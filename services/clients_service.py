@@ -1,13 +1,28 @@
 from datetime import datetime
 from typing import Tuple, Union, List, Dict
+import re
 
 from repos.clients_repo import ClientsRepo
 from repos.cases_repo import CasesRepo
+
+EMAIL_REGEX = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
 
 class ClientsService():
     def __init__(self, clients_repo: ClientsRepo, cases_repo:CasesRepo):
         self.clients_repo = clients_repo
         self.cases_repo = cases_repo
+
+    def _validate_client_data(self, client_data:dict) ->List[str]:
+        errors = []
+        if not client_data.get('name'):
+            errors.append('Client name is required.')
+        if not client_data.get('country'):
+            errors.append('Country is required.')
+        elif len(client_data['country']) != 2:
+            errors.append('Country name must have 2 letters according to WIPO standard.')
+        if client_data.get('email') and not re.match(EMAIL_REGEX, client_data['email']):
+            errors.append('Invalid email address format.')
+        return errors
 
     def get_all_clients(self) -> Tuple[bool, Union[List[Dict], Exception]]:
         return self.clients_repo.get_all_clients()
@@ -19,12 +34,9 @@ class ClientsService():
         return self.clients_repo.get_client_by_id(client_id, 'client_id')
     
     def insert_client(self, client_data: dict) -> Tuple[bool, Union[Dict, None, Exception]]:
-        if 'name' not in client_data or not client_data['name']:
-            return (False, ValueError('Client name is required.'))
-        if 'country' not in client_data or not client_data['country']:
-            return (False, ValueError('Country is required.'))
-        if len(client_data['country']) != 2:
-            return (False, ValueError('Country must be two letters according to WIPO standard.'))
+        errors = self._validate_client_data(client_data)
+        if errors:
+            return (False, ValueError("/".join(errors)))
         optional_fields = [
             'address', 'zip_code', 'city',
             'email', 'phone', 'vat_number',
@@ -42,12 +54,9 @@ class ClientsService():
     def update_client(self, client_data: dict) -> Tuple[bool, Union[Dict, None, Exception]]:
         if 'client_id' not in client_data or not client_data['client_id']:
             return (False, ValueError('Client ID must be provided.'))
-        if 'name' not in client_data or not client_data['name']:
-            return (False, ValueError('Client name is required.'))
-        if 'country' not in client_data or not client_data['country']:
-            return (False, ValueError('Country is required.'))
-        if len(client_data['country']) != 2:
-            return (False, ValueError('Country must be two letters according to WIPO standard.'))
+        errors = self._validate_client_data(client_data)
+        if errors:
+            return (False, ValueError("/".join(errors)))
         optional_fields = [
             'address', 'zip_code', 'city',
             'email', 'phone', 'vat_number',
