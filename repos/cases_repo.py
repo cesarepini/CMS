@@ -1,122 +1,77 @@
-from typing import Tuple, Union
-from .base_repo import BaseRepo
+from datetime import datetime
+from typing import Dict, List, Optional, Tuple, Union
+from repos.base_repo import BaseRepo
+
+from database_handler.database_handler import DatabaseHandler
 
 class CasesRepo(BaseRepo):
     
-    def __init__(self, table_name='Cases', db_path = None):
-        super().__init__(table_name, db_path)
+    def __init__(self, db_handler: DatabaseHandler):
+        super().__init__('Cases', db_handler)
 
-    def get_all_cases(self) -> Tuple[bool, Union[list, Exception]]:
+    def get_all_cases(self) -> Tuple[bool, Union[List[Dict], Exception]]:
         return self._run_query(
             f'SELECT * FROM {self.table_name}'
         )
 
-    def get_case_by_id(self, case_data: dict) -> Tuple[bool, Union[dict, None, Exception]]:
-        return self._run_query_one(
-            f'SELECT * FROM {self.table_name} WHERE case_id = ?',
-            (case_data['case_id'],)
-        )
+    def get_case_by_id(self, id_value:int, id_field: str = 'case_id') -> Tuple[bool, Union[dict, None, Exception]]:
+        return self._get_record_by_id(id_field, id_value)
     
-    def get_cases_by_client(self, case_data: dict) -> Tuple[bool, Union[list, Exception]]:
+    def get_open_cases(self) -> Tuple[bool, Union[list, Exception]]:
+        return self._run_query(f'SELECT * FROM {self.table_name} WHERE is_open=1')
+
+    def get_cases_by_client(self, client_id: int) -> Tuple[bool, Union[List[Dict], Exception]]:
         return self._run_query(
             f'SELECT cs.* FROM {self.table_name} WHERE client_id=? ',
-            (case_data['client_id'],)
+            (client_id,)
         )
     
-    def get_open_cases_by_client(self, case_data: dict) -> Tuple[bool, Union[list, Exception]]:
+    def get_open_cases_by_client(self, client_id: int) -> Tuple[bool, Union[List[Dict], Exception]]:
         return self._run_query(
             f'SELECT * FROM {self.table_name} WHERE client_id=? AND is_open=1',
-            (case_data['client_id'],)
+            (client_id,)
         )
     
-    def get_cases_by_jurisdiction(self, case_data: dict) -> Tuple[bool, Union[list, Exception]]:
+    def get_cases_by_jurisdiction(self, jurisdiction: str) -> Tuple[bool, Union[List[Dict], Exception]]:
         return self._run_query(
             f'SELECT * FROM {self.table_name} WHERE jurisdiction=?',
-            (case_data['jurisdiction'],)
+            (jurisdiction,)
         )
     
-    def get_cases_by_procedure(self, case_data: dict) -> Tuple[bool, Union[list, Exception]]:
+    def get_cases_by_procedure(self, procedure_type: str) -> Tuple[bool, Union[List[Dict], Exception]]:
         return self._run_query(
             f'SELECT * FROM {self.table_name} WHERE procedure_type=?',
-            (case_data['procedure_type'],)
+            (procedure_type,)
         )
 
-    def get_cases_by_ipr_type(self, case_data: dict) -> Tuple[bool, Union[list, Exception]]:
+    def get_cases_by_ipr_type(self, ipr_type: str) -> Tuple[bool, Union[List[Dict], Exception]]:
         return self._run_query(
             f'SELECT * FROM {self.table_name} WHERE ipr_type=?',
-            (case_data['ipr_type'],)
+            (ipr_type,)
         )
     
-    def get_cases_by_status(self, case_data: dict) -> Tuple[bool, Union[list, Exception]]:
+    def get_cases_by_status(self, status: str) -> Tuple[bool, Union[List[Dict], Exception]]:
         return self._run_query(
             f'SELECT * FROM {self.table_name} WHERE status=?',
-            (case_data['status'],)
+            (status,)
         )
 
     def insert_case(self, case_data: dict) -> Tuple[bool, Union[int, Exception]]:
-        return self._run_modify(
-            f"""
-            INSERT INTO {self.table_name} (
-                case_type, procedure_type, ipr_type,
-                client_id, client_ref,
-                title,
-                jurisdiction, filing_date, filing_number, status,
-                notes,
-                is_open,
-                created_at, updated_at, closed_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                case_data['case_type'], case_data['procedure_type'], case_data['ipr_type'],
-                case_data['client_id'], case_data['client_ref'],
-                case_data['title'],
-                case_data['jurisdiction'], case_data['filing_date'], case_data['filing_number'],
-                case_data['status'],
-                case_data['notes'],
-                case_data['is_open'],
-                case_data['created_at'], case_data['updated_at'], case_data['closed_at']
-            )
-        )
+        return self.insert_new_record(case_data)
 
-    def update_case(self, case_data: dict) -> Tuple[bool, Union[int, Exception]]:
-        return self._run_modify(
-            f"""
-            UPDATE {self.table_name}
-            SET
-                case_type=?, procedure_type=?, ipr_type=?,
-                client_id=?, client_ref=?,
-                title=?,
-                jurisdiction=?, filing_date=?, filing_number=?, status=?,
-                notes=?,
-                is_open=?,
-                created_at=?, updated_at=?, closed_at=?
-            WHERE case_id = ?
-            """,
-            (
-                case_data['case_type'], case_data['procedure_type'], case_data['ipr_type'],
-                case_data['client_id'], case_data['client_ref'],
-                case_data['title'],
-                case_data['jurisdiction'], case_data['filing_date'], case_data['filing_number'],
-                case_data['status'],
-                case_data['notes'],
-                case_data['is_open'],
-                case_data['created_at'], case_data['updated_at'], case_data['closed_at'],
-                case_data['case_id']
-            )
-        )
+    def update_case(self, case_data: dict, id_value:int, id_field:str = 'case_id') -> Tuple[bool, Union[int, Exception]]:
+        return self.update_by_id(id_field, id_value, case_data)
 
-    def close_case(self, case_data: dict) -> Tuple[bool, Union[int, Exception]]:
-        return self._run_modify(
-            f"""
-            UPDATE {self.table_name}
-            SET
-            is_open = 0,
-            closed_at = ?
-            WHERE case_id = ?
-            """,
-            (
-                case_data['closed_at'],
-                case_data['case_id']
-                )
-        )
+    def close_case(
+            self,
+            id_value:int,
+            id_field:str = 'case_id',
+            closed_at:Optional[str] = None
+            ) -> Tuple[bool, Union[int, Exception]]:
+        if closed_at is None:
+            closed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        updates = {
+            'is_open':0,
+            'closed_at':closed_at
+        }
+        return self.update_by_id(id_field, id_value, updates)

@@ -1,91 +1,49 @@
-from typing import Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 from repos.base_repo import BaseRepo
+from datetime import datetime
+
+from database_handler.database_handler import DatabaseHandler
 
 class ClientsRepo(BaseRepo):
-    def __init__(self, db_path=None):
-        super().__init__("Clients", db_path)
+    def __init__(self, db_handler: DatabaseHandler):
+        super().__init__("Clients", db_handler)
 
-    def get_all_clients(self) -> Tuple[bool, Union[list, Exception]]:
+    # --- Querying functions --- #
+    def get_all_clients(self) -> Tuple[bool, Union[List[Dict], Exception]]:
         return self._run_query(
             f'SELECT * FROM {self.table_name} ORDER BY name'
         )
 
-    def get_client_by_id(self, client_data: dict) -> Tuple[bool, Union[dict, None, Exception]]:
-        return self._run_query_one(
-            f'SELECT * FROM {self.table_name} WHERE client_id = ?',
-            (client_data['client_id'],)
-        )
+    def get_client_by_id(self, id_value:int, id_field:str = 'client_id') -> Tuple[bool, Union[dict, None, Exception]]:
+        return self._get_record_by_id(id_field, id_value)
 
     def get_active_clients(self):
         return self._run_query(
             f'SELECT * FROM {self.table_name} WHERE is_active=1 ORDER BY NAME'
         )
 
+    # --- Modifying functions --- #
     def insert_client(self, client_data: dict) -> Tuple[bool, Union[int, Exception]]:
-        return self._run_modify(
-            f"""
-            INSERT INTO {self.table_name} (
-                name, address, zip_code, city, country,
-                email, phone, vat_number, payment_term, notes,
-                is_active, created_at, updated_at, deactivated_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                client_data['name'],
-                client_data['address'],
-                client_data['zip_code'],
-                client_data['city'],
-                client_data['country'],
-                client_data['email'],
-                client_data['phone'],
-                client_data['vat_number'],
-                client_data['payment_term'],
-                client_data['notes'],
-                client_data['is_active'],
-                client_data['created_at'],
-                client_data['updated_at'],
-                client_data['deactivated_at']
-            )
-        )
+        return self.insert_new_record(client_data)
 
-    def update_client(self, client_data: dict) -> Tuple[bool, Union[int, Exception]]:
-        return self._run_modify(
-            f"""
-            UPDATE {self.table_name}
-            SET
-                name=?, address=?, zip_code=?, city=?, country=?,
-                email=?, phone=?, vat_number=?, payment_term=?, notes=?,
-                is_active=?, updated_at=?, deactivated_at=?
-            WHERE client_id=?
-            """,
-            (
-                client_data['name'],
-                client_data['address'],
-                client_data['zip_code'],
-                client_data['city'],
-                client_data['country'],
-                client_data['email'],
-                client_data['phone'],
-                client_data['vat_number'],
-                client_data['payment_term'],
-                client_data['notes'],
-                client_data['is_active'],
-                client_data['updated_at'],
-                client_data['deactivated_at'],
-                client_data['client_id']
-            )
-        )
+    def update_client(
+            self,
+            client_data: dict,
+            id_value:int,
+            id_field:str = 'client_id'
+            ) -> Tuple[bool, Union[int, Exception]]:
+        return self.update_by_id(id_field, id_value, client_data)
 
-    def deactivate_client(self, client_data: dict) -> Tuple[bool, Union[int, Exception]]:
-        return self._run_modify(
-            f"""
-            UPDATE {self.table_name}
-            SET is_active = 0, deactivated_at=?
-            WHERE client_id = ?
-            """,
-            (
-                client_data['deactivated_at'],
-                client_data['client_id']
-            )
-        )
+    def deactivate_client(
+            self,
+            id_value:int,
+            id_field:str = 'client_id',
+            deactivated_at:Optional[str] = None
+            ) -> Tuple[bool, Union[int, Exception]]:
+        if deactivated_at is None:
+            deactivated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        updates = {
+            'is_active':0,
+            'deactivated_at':deactivated_at
+        }
+        return self.update_by_id(id_field, id_value, updates)
