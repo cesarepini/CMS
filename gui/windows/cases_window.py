@@ -138,19 +138,24 @@ class CasesWindow:
             
             # Form fields pre-populated with existing data
             status_options = ['', 'filed', 'pending', 'granted', 'refused', 'withdrawn', 'expired']
+            case_options = ['KA','DV', 'SM']
+            procedure_options = ['prosecution', 'opposition', 'general counselling']
+            ipr_options = ['PAT', 'TM', 'DES', 'UM']
             current_status_index = status_options.index(case_data.get('status')) if case_data.get('status') in status_options else 0
-            
+            current_case_type_index = case_options.index(case_data.get('case_type')) if case_data.get('case_type') in case_options else 0
+            current_procedure_type_index = procedure_options.index(case_data.get('procedure_type')) if case_data.get('procedure_type') in procedure_options else 0
+            current_case_ipr_type_index = ipr_options.index(case_data.get('ipr_type')) if case_data.get('ipr_type') in ipr_options else 0
             filing_date_val = datetime.datetime.strptime(case_data.get('filing_date'), '%Y-%m-%d').date() if case_data.get('filing_date') else None
 
             col1, col2, col3 = st.columns(3)
             with col1:
                 client_ref = st.text_input("Client Reference*", help="The client's internal reference for this case.", value=case_data.get('client_ref'))
             with col2:
-                case_type = st.selectbox("Case Type", options=['KA','DV', 'SM'], index=0, , value=case_data.get('case_type', ''))
-                procedure_type = st.selectbox('Procedure Type', options=['prosecution', 'opposition', 'general counselling'], index=0, value=case_data.get('procedure_type', ''))
-                ipr_type = st.selectbox('IPR Type', options=['PAT', 'TM', 'DES', 'UM'], index=0, value=case_data.get('ipr_type', ''))
+                case_type = st.selectbox("Case Type", options=case_options, index=current_case_type_index)
+                procedure_type = st.selectbox('Procedure Type', options=procedure_options, index=current_procedure_type_index)
+                ipr_type = st.selectbox('IPR Type', options=ipr_options, index=current_case_ipr_type_index)
             with col3:
-                jurisdiction = st.text_input("Jurisdiction", max_chars=2, help="2-letter country code.", value=case_data.get('client_ref'))
+                jurisdiction = st.text_input("Jurisdiction", max_chars=2, help="2-letter country code.", value=case_data.get('jurisdiction'))
                 filing_number = st.text_input("Filing Number", value=case_data.get('filing_number', ''))
                 filing_date = st.date_input("Filing Date", value=filing_date_val)
                 status = st.selectbox("Status", options=status_options, index=current_status_index)
