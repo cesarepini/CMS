@@ -53,7 +53,6 @@ class DeadlineService():
         errors = self._validate_deadline_data(deadline_data)
         if errors:
             return False, ValueError(". ".join(errors))
-        deadline_id = deadline_data.pop('deadline_id')
         deadline_data['completed'] = 0
         deadline_data['updated_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         deadline_data['completed_at'] = None

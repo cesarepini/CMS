@@ -42,7 +42,7 @@ class CasesRepo(BaseRepo):
 
     def get_cases_by_client(self, client_id: int) -> Tuple[bool, Union[List[Dict], Exception]]:
         return self._run_query(
-            f'SELECT cs.* FROM {self.table_name} WHERE client_id=? ',
+            f'SELECT * FROM {self.table_name} WHERE client_id=? ',
             (client_id,)
         )
     

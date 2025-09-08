@@ -13,7 +13,7 @@ class BaseRepo:
 
     def _validate_field_names(self, field_names: List[str]) -> None | ValueError:
         for field_name in field_names:
-            if field_name not in self.allowed_field_names:
+            if field_name not in self.allowed_columns:
                 raise ValueError(f'Disallowed field name {field_name}')
 
     def _run_query(
