@@ -1,0 +1,61 @@
+patent_case_manager/
+│
+├── main.py                          # Entry point (app launcher)
+│
+├── config/
+│   ├── settings.py                  # Global settings (DB path, constants) not relevant now, maybe later
+│   └── __init__.py
+│
+├── migrations/                      # Pure SQL schema migrations
+│   └── 0001_initial.sql             # Initial schema
+│
+├── database/
+│   ├── database_handler.py          # DB lifecycle (connections, migrations)
+│   └── __init__.py
+│
+├── repos/                           # Raw SQL execution & error handling
+│   ├── base_repo.py                 # Handling common functions (get_all, get_one...)
+│   ├── clients_repo.py
+│   ├── cases_repo.py
+│   ├── deadlines_repo.py
+│   ├── ..._repo.py
+│   └── __init__.py
+│
+├── services/                        # Business logic, validation, conversion
+│   ├── clients_service.py
+│   ├── cases_service.py
+│   ├── deadlines_service.py
+│   ├── ..._service.py
+│   └── __init__.py
+│
+├── gui/                             # Tkinter windows & widgets
+│   ├── windows/
+│   │   ├── clients_window.py
+│   │   ├── cases_window.py
+│   │   ├── deadlines_window.py
+│   │   ├── tasks_window.py
+│   │   ├── billables_window.py
+│   │   └── users_window.py
+│   │   └── ..._window.py
+│   ├── widgets/
+│   │   └── custom_table.py
+│   ├── main_window.py
+│   └── __init__.py
+│
+├── utils/                           # Reusable helpers maybe for future implementations, when patterns become recurrent accross tables
+│   ├── audit.py                     # eg. Audit logging helpers
+│   ├── time_utils.py                # eg. Unix timestamp helpers
+│   ├── validators.py                # Input validation
+│   └── __init__.py
+│
+├── logs/                            # Application & audit logs
+│   └── app.log
+│
+├── tests/                           # Unit tests, if needed
+│   ├── test_clients.py
+│   ├── test_cases.py
+│   ├── test....py
+│   └── __init__.py
+│
+├── requirements.txt                 # Dependencies
+└── README.md                        # Documentation

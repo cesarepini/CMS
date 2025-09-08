@@ -8,7 +8,7 @@ class DeadlineService():
         self.deadlines_repo = deadlines_repo
 
     def _validate_deadline_data(self, deadline_data: dict) -> List[str]:
-        """Validates deadline data, returning a list of error messages."""
+        '''Validates deadline data, returning a list of error messages.'''
         errors = []
         mandatory_fields = ['case_id', 'description', 'due_date', 'deadline_type', 'status']
         for field in mandatory_fields:
@@ -41,9 +41,9 @@ class DeadlineService():
     def insert_deadline(self, deadline_data: dict) -> Tuple[bool, Union[Dict, None, Exception]]:
         errors = self._validate_deadline_data(deadline_data)
         if errors:
-            return False, ValueError(". ".join(errors))
+            return False, ValueError(' '.join(errors))
         deadline_data['completed'] = 0
-        deadline_data['created_at'] = deadline_data['updated_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        deadline_data['created_at'] = deadline_data['updated_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         deadline_data['completed_at'] = None
         return self.deadlines_repo.insert_deadline(deadline_data)
     
@@ -52,9 +52,9 @@ class DeadlineService():
             return False, ValueError('Deadline ID must be provided.')
         errors = self._validate_deadline_data(deadline_data)
         if errors:
-            return False, ValueError(". ".join(errors))
+            return False, ValueError(' '.join(errors))
         deadline_data['completed'] = 0
-        deadline_data['updated_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        deadline_data['updated_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         deadline_data['completed_at'] = None
         deadline_id = deadline_data.pop('deadline_id')
         return self.deadlines_repo.update_deadline(deadline_data, deadline_id)

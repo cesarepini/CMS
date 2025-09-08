@@ -71,10 +71,10 @@ class BaseRepo:
         try:
             field_names = list(data.keys())
             self._validate_field_names(field_names)
-            columns = ", ".join(data.keys())
-            placeholders = ", ".join("?" for _ in data)
+            columns = ', '.join(data.keys())
+            placeholders = ', '.join('?' for _ in data)
             values = tuple(data.values())
-            query = f"INSERT INTO {self.table_name} ({columns}) VALUES ({placeholders})"
+            query = f'INSERT INTO {self.table_name} ({columns}) VALUES ({placeholders})'
             return self._run_modify(query, values)
         except (ValueError, sqlite3.Error) as e:
             return (False, e)
@@ -88,9 +88,9 @@ class BaseRepo:
             field_names = list(updates.keys())
             field_names.append(id_field)
             self._validate_field_names(field_names)
-            set_clause = ", ".join([f"{col}=?" for col in updates.keys()])
+            set_clause = ', '.join([f'{col}=?' for col in updates.keys()])
             values = tuple(updates.values()) + (id_value,)
-            query = f"UPDATE {self.table_name} SET {set_clause} WHERE {id_field} = ?"
+            query = f'UPDATE {self.table_name} SET {set_clause} WHERE {id_field} = ?'
             return self._run_modify(query, values)
         except (ValueError, sqlite3.Error) as e:
             return (False, e)

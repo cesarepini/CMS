@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Optional, List, Tuple, Union
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DB_PATH = BASE_DIR / "patent_case_manager.db"
-MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / "migrations"
+DB_PATH = BASE_DIR / 'patent_case_manager.db'
+MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / 'migrations'
 
 class DatabaseHandler:
     def __init__(self, db_path: Optional[Path] = None):
@@ -30,20 +30,20 @@ class DatabaseHandler:
             self.conn.rollback()
 
     def connect(self) -> None:
-        """Establishes a database connection."""
+        '''Establishes a database connection.'''
         if not self.conn or self.is_closed():
             self.conn = sqlite3.connect(self.db_path, check_same_thread=False) # Added for Streamlit
             self.conn.row_factory = sqlite3.Row
-            self.conn.execute("PRAGMA foreign_keys = ON;")
+            self.conn.execute('PRAGMA foreign_keys = ON;')
 
     def close(self) -> None:
-        """Closes the database connection."""
+        '''Closes the database connection.'''
         if self.conn:
             self.conn.close()
             self.conn = None
 
     def is_closed(self) -> bool:
-        """Checks if the connection is closed or not initialized."""
+        '''Checks if the connection is closed or not initialized.'''
         try:
             # Attempting to get the total_changes will raise a ProgrammingError if closed.
             self.conn.total_changes
@@ -53,33 +53,33 @@ class DatabaseHandler:
 
     #TODO: Stub the prints arguments out to return a tuple(Boolen, Union[str, Error]) for logging
     def init_database(self) -> None:
-        """Initializes the database and applies migrations."""
+        '''Initializes the database and applies migrations.'''
         if not self.conn:
             self.connect()
         try:
             with self as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute('''
                     CREATE TABLE IF NOT EXISTS schema_migrations (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         filename TEXT UNIQUE NOT NULL,
                         applied_at TEXT NOT NULL CHECK(LENGTH(applied_at)=19)
                     )
-                """)
+                ''')
                 conn.commit()
 
-                cursor.execute("SELECT filename FROM schema_migrations")
-                applied = {row["filename"] for row in cursor.fetchall()}
+                cursor.execute('SELECT filename FROM schema_migrations')
+                applied = {row['filename'] for row in cursor.fetchall()}
                 new_migrations_file_names = []
 
-                for migration_file in sorted(MIGRATIONS_DIR.glob("*.sql")):
+                for migration_file in sorted(MIGRATIONS_DIR.glob('*.sql')):
                     if migration_file.name not in applied:
-                        print(f"Applying migration: {migration_file.name}")
-                        with open(migration_file, "r", encoding="utf-8") as f:
+                        print(f'Applying migration: {migration_file.name}')
+                        with open(migration_file, 'r', encoding='utf-8') as f:
                             sql = f.read()
                         cursor.executescript(sql)
                         cursor.execute(
-                            "INSERT INTO schema_migrations (filename, applied_at) VALUES (?, datetime(strftime('%s','now'), 'unixepoch'))",
+                            'INSERT INTO schema_migrations (filename, applied_at) VALUES (?, datetime(strftime("%s","now"), "unixepoch"))',
                             (migration_file.name,)
                         )
                         conn.commit()

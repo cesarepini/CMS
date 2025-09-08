@@ -89,7 +89,7 @@ class CasesRepo(BaseRepo):
             closed_at:Optional[str] = None
             ) -> Tuple[bool, Union[int, Exception]]:
         if closed_at is None:
-            closed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            closed_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         updates = {
             'is_open':0,
             'closed_at':closed_at

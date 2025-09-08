@@ -10,7 +10,7 @@ class CasesService():
         self.deadlines_repo = deadlines_repo
 
     def _is_valid_date(self, date_string: str) -> bool:
-        """Checks if a string is a valid YYYY-MM-DD date."""
+        '''Checks if a string is a valid YYYY-MM-DD date.'''
         if not date_string:
             return True # Allow empty/None dates
         try:
@@ -20,7 +20,7 @@ class CasesService():
             return False
         
     def _validate_case_data(self, case_data: dict) -> List[str]:
-        """Validates case data, returning a list of error messages."""
+        '''Validates case data, returning a list of error messages.'''
         errors = []
         if not case_data.get('client_id'):
             errors.append('Client ID is required.')
@@ -64,7 +64,7 @@ class CasesService():
     def insert_case(self, case_data: dict) -> Tuple[bool, Union[Dict, None, Exception]]:
         errors = self._validate_case_data(case_data)
         if errors:
-            return (False, ValueError('/'.join(errors)))
+            return (False, ValueError(' '.join(errors)))
         optional_fields = [
             'case_type', 'procedure_type', 'ipr_type',
             'title', 'jurisdiction', 'filing_date',
@@ -74,7 +74,7 @@ class CasesService():
             case_data[field] = case_data.get(field) or None
         case_data['is_open'] = 1
         case_data['closed_at'] = None
-        case_data['created_at'] = case_data['updated_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        case_data['created_at'] = case_data['updated_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         return self.cases_repo.insert_case(
             case_data
         )
@@ -84,7 +84,7 @@ class CasesService():
             return (False, ValueError('Case ID is required.'))
         errors = self._validate_case_data(case_data)
         if errors:
-            return (False, ValueError('/'.join(errors)))
+            return (False, ValueError(' '.join(errors)))
         optional_fields = [
             'case_type', 'procedure_type', 'ipr_type',
             'title', 'jurisdiction', 'filing_date',
@@ -94,7 +94,7 @@ class CasesService():
             case_data[field] = case_data.get(field) or None
         case_data['is_open'] = 1
         case_data['closed_at'] = None
-        case_data['updated_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        case_data['updated_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         case_id = case_data.pop('case_id')
         return self.cases_repo.update_case(case_data, case_id)
     

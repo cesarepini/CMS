@@ -36,7 +36,7 @@ class ClientsService():
     def insert_client(self, client_data: dict) -> Tuple[bool, Union[Dict, None, Exception]]:
         errors = self._validate_client_data(client_data)
         if errors:
-            return (False, ValueError("/".join(errors)))
+            return (False, ValueError(' '.join(errors)))
         optional_fields = [
             'address', 'zip_code', 'city',
             'email', 'phone', 'vat_number',
@@ -46,7 +46,7 @@ class ClientsService():
             client_data[field] = client_data.get(field) or None
         client_data['is_active'] = 1
         client_data['deactivated_at'] = None
-        client_data['created_at'] = client_data['updated_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        client_data['created_at'] = client_data['updated_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         return self.clients_repo.insert_client(
             client_data
         )
@@ -56,7 +56,7 @@ class ClientsService():
             return (False, ValueError('Client ID must be provided.'))
         errors = self._validate_client_data(client_data)
         if errors:
-            return (False, ValueError("/".join(errors)))
+            return (False, ValueError(' '.join(errors)))
         optional_fields = [
             'address', 'zip_code', 'city',
             'email', 'phone', 'vat_number',
@@ -66,7 +66,7 @@ class ClientsService():
             client_data[field] = client_data.get(field) or None
         client_data['is_active'] = 1
         client_data['deactivated_at'] = None
-        client_data['updated_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        client_data['updated_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         client_id = client_data.pop('client_id')
         return self.clients_repo.update_client(client_data, client_id)
     
@@ -75,6 +75,6 @@ class ClientsService():
         if not success:
             return False, open_cases
         if open_cases and len(open_cases) > 0:
-            return False, "Client has open cases and cannot be deactivated."
+            return False, 'Client has open cases and cannot be deactivated.'
 
         return self.clients_repo.deactivate_client(client_id)

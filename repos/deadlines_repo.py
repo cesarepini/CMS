@@ -47,7 +47,7 @@ class DeadlinesRepo(BaseRepo):
 
     def mark_deadline_completed(self, id_value:int, id_field:str='deadline_id', completed_at:Optional[str] = None) -> Tuple[bool, Union[int, Exception]]:
         if completed_at is None:
-            completed_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            completed_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         updates = {
             'completed':1,
             'status': 'Done',
