@@ -1,135 +1,159 @@
-from datetime import datetime
+# gui/windows/clients_window.py
 import streamlit as st
+import pandas as pd
 from services.clients_service import ClientsService
-from typing import Optional
-
 
 class ClientsWindow:
     def __init__(self, clients_service: ClientsService):
         self.clients_service = clients_service
+        # Initialize session_state for managing which client is being edited
+        if 'editing_client_id' not in st.session_state:
+            st.session_state.editing_client_id = None
 
     def render(self):
-        st.title('👤 Clients')
+        st.title('👤 Clients Management')
 
-        tab1, tab2 = st.tabs(['View Clients', 'Add New Client'])
+        # Create two tabs: one to view all clients, one to add a new one
+        tab_view, tab_add = st.tabs(['📋 View Clients', '➕ Add New Client'])
 
-        with tab1:
-            self._render_client_list()
+        with tab_view:
+            self._render_view_clients_tab()
 
-        with tab2:
+        with tab_add:
             self._render_add_client_form()
 
-    def _render_client_list(self):
-        st.subheader('📋 All Clients')
+    def _render_view_clients_tab(self):
+        st.subheader('Active Client List')
+
+        # If we are in edit mode, render the update form
+        if st.session_state.editing_client_id is not None:
+            self._render_update_client_form()
+
+        # Fetch and display all active clients
         success, clients = self.clients_service.get_active_clients()
 
-        if success:
-            for client in clients:
-                st.markdown('---')
-                cols = st.columns([3, 3, 2, 1, 1])
-                cols[0].markdown(f'**{client['name']}**')
-                cols[1].markdown(client.get('email', '—'))
-                cols[2].markdown(client.get('country', '—'))
+        if not success:
+            st.error(f"Failed to load clients: {clients}")
+            return
+        
+        if not clients:
+            st.info("No active clients found. You can add one in the 'Add New Client' tab.")
+            return
 
-                if cols[3].button('✏️ Update', key=f'update_{client['client_id']}'):
-                    self.editing_client = client
-
-                if cols[4].button('🗑 Deactivate', key=f'deactivate_{client['client_id']}'):
-                    success, clients = self.clients_service.deactivate_client(client['client_id'])
-                    if success:
-                        st.success('Client deactivated.')
+        # Display clients with interactive buttons
+        for client in clients:
+            col1, col2, col3, col4, col5 = st.columns([4, 4, 2, 1, 1])
+            with col1:
+                st.markdown(f"**{client['name']}** (`{client['client_code']}`)")
+            with col2:
+                st.write(client.get('email') or 'No email')
+            with col3:
+                st.write(f"Country: {client.get('country')}")
+            with col4:
+                # Update button sets the session state to the client's ID and reruns
+                if st.button('✏️', key=f"edit_{client['client_id']}"):
+                    st.session_state.editing_client_id = client['client_id']
+                    st.rerun()
+            with col5:
+                # Deactivate button
+                if st.button('🗑️', key=f"deact_{client['client_id']}"):
+                    deact_success, msg = self.clients_service.deactivate_client(client['client_id'])
+                    if deact_success:
+                        st.success(f"Client '{client['name']}' deactivated.")
                         st.rerun()
                     else:
-                        st.error(str(clients))
-
-            if hasattr(self, 'editing_client') and self.editing_client:
-                st.markdown('### ✏️ Update Client')
-                with st.form('update_client_form'):
-                    name = st.text_input('Name', value=self.editing_client['name'])
-                    country = st.text_input('Country', value=self.editing_client['country'])
-                    email = st.text_input('Email', value=self.editing_client.get('email', ''))
-
-                    submitted = st.form_submit_button('Save Changes')
-                    if submitted:
-                        updated_data = {
-                            'client_id': self.editing_client['client_id'],
-                            'name': name,
-                            'country': country,
-                            'email': email,
-                            'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                        }
-                        success, result = self.clients_service.update_client(updated_data)
-                        if success:
-                            st.success('Client updated.')
-                            del self.editing_client
-                            st.rerun()
-                        else:
-                            st.error(str(result))
-
-
-        if not success:
-            st.error(f'Failed to load clients: {clients}')
-            return
-
-        if not clients:
-            st.info('No clients found.')
-            return
-
-        st.dataframe(clients, use_container_width=True)
-
+                        st.error(msg)
+            st.divider()
+    
     def _render_add_client_form(self):
-        st.subheader('➕ Add New Client')
-
-        with st.form('add_client_form', clear_on_submit=True):
-            name = st.text_input('Client Name*', max_chars=100)
-            code = st.text_input('Client Code*', max_chars=3)
-            country = st.text_input('Country Code (ISO-2)*', max_chars=2)
-
-            # Optional fields
-            col1, col2 = st.columns(2)
-            with col1:
-                email = st.text_input('Email')
-                phone = st.text_input('Phone')
-            with col2:
-                address = st.text_input('Address')
-                city = st.text_input('City')
-                zip_code = st.text_input('ZIP Code')
-
-            vat_number = st.text_input('VAT Number')
-            payment_term = st.number_input('Payment Term (days)', min_value=0, step=1)
-            notes = st.text_area('Notes')
-
-            submitted = st.form_submit_button('Add Client')
-
+        with st.form("add_client_form", clear_on_submit=True):
+            st.subheader("Add a New Client")
+            # Get required fields based on the database schema
+            name = st.text_input("Client Name*", help="Full name of the client.")
+            client_code = st.text_input("Client Code*", max_chars=3, help="A unique 3-letter code.")
+            address = st.text_input("Address")
+            zip_code = st.text_input("ZIP Code")
+            city = st.text_input("City")
+            country = st.text_input("Country Code*", max_chars=2, help="2-letter ISO country code.")
+            email = st.text_input("Email")
+            phone = st.text_input("Phone")
+            vat_number = st.text_input("VAT Number")
+            payment_term = st.number_input("Payment term", min_value=0, value=14)
+            notes = st.text_area("Notes", height="content")
+            
+            submitted = st.form_submit_button("Add Client")
             if submitted:
-                client_data = {
-                    'name': name,
-                    'client_code': code.upper(),
-                    'country': country.upper(),
-                    'email': email,
-                    'phone': phone,
-                    'address': address,
-                    'city': city,
-                    'zip_code': zip_code,
-                    'vat_number': vat_number,
-                    'payment_term': payment_term,
-                    'notes': notes
-                }
+                # Basic validation
+                if not name or not client_code or not country:
+                    st.warning("Please fill in all required fields (*).")
+                else:
+                    client_data = {
+                        'name': name,
+                        'client_code': client_code.upper(),
+                        'address': address,
+                        'zip_code':zip_code,
+                        'city': city,
+                        'country': country.upper(),
+                        'email': email,
+                        'phone': phone,
+                        'vat_number': vat_number,
+                        'payment_term': payment_term,
+                        'notes': notes,
+                    }
+                    success, result = self.clients_service.insert_client(client_data)
+                    if success:
+                        st.success("Client added successfully!")
+                    else:
+                        st.error(f"Error: {result}")
 
-                self.handle_add_client(client_data)
-
-            #     success, response = self.clients_service.insert_client(client_data)
-            #     if success:
-            #         st.success('Client added successfully.')
-            #         st.experimental_rerun()
-            #     else:
-            #         st.error(f'Error: {response}')
-
-    def handle_add_client(self, client_data: dict):
-        success, result = self.clients_service.insert_client(client_data)
+    def _render_update_client_form(self):
+        st.subheader("✏️ Edit Client Details")
+        # Get the full data for the client being edited
+        success, client_data = self.clients_service.get_client_by_id(st.session_state.editing_client_id)
         
-        if success:
-            st.success('Client added successfully.')
-            st.rerun()
-        else:
-            st.error(f'Error: {result}')
+        if not success:
+            st.error(f"Could not fetch client data: {client_data}")
+            return
+
+        with st.form("update_client_form"):
+            name = st.text_input("Client Name*", value=client_data.get('name'))
+            client_code = st.text_input("Client Code*", value=client_data.get('client_code'), max_chars=3)
+            address = st.text_input("Address", value=client_data.get('address'))
+            zip_code = st.text_input("ZIP Code", value=client_data.get('zip_code'))
+            city = st.text_input("City", value=client_data.get('city'))
+            country = st.text_input("Country Code*", value=client_data.get('country'), max_chars=2)
+            email = st.text_input("Email", value=client_data.get('email'))
+            phone = st.text_input("Phone", value=client_data.get('phone'))
+            vat_number = st.text_input("VAT Number", value=client_data.get('vat_number'))
+            payment_term = st.number_input("Payment term", min_value=0, value=client_data.get('payment_term'))
+            notes = st.text_area("Notes", height="content", value=client_data.get('notes'))
+            
+            col_update, col_cancel = st.columns(2)
+            with col_update:
+                if st.form_submit_button("Save Changes", use_container_width=True):
+                    updated_data = {
+                        'client_id': st.session_state.editing_client_id,
+                        'name': name,
+                        'client_code': client_code.upper(),
+                        'address': address,
+                        'zip_code':zip_code,
+                        'city': city,
+                        'country': country.upper(),
+                        'email': email,
+                        'phone': phone,
+                        'vat_number': vat_number,
+                        'payment_term': payment_term,
+                        'notes': notes
+                    }
+                    upd_success, result = self.clients_service.update_client(updated_data)
+                    if upd_success:
+                        st.success("Client updated successfully!")
+                        st.session_state.editing_client_id = None
+                        st.rerun()
+                    else:
+                        st.error(f"Update failed: {result}")
+
+            with col_cancel:
+                if st.form_submit_button("Cancel", type="secondary", use_container_width=True):
+                    st.session_state.editing_client_id = None
+                    st.rerun()
