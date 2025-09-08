@@ -2,25 +2,32 @@
 import streamlit as st
 import pandas as pd
 from services.clients_service import ClientsService
+from services.cases_service import CasesService
 
 class ClientsWindow:
-    def __init__(self, clients_service: ClientsService):
+    def __init__(self, clients_service: ClientsService, cases_service:CasesService):
         self.clients_service = clients_service
+        self.cases_service = cases_service
         # Initialize session_state for managing which client is being edited
         if 'editing_client_id' not in st.session_state:
             st.session_state.editing_client_id = None
+        if 'viewing_cases_for_client_id' not in st.session_state:
+            st.session_state.viewing_cases_for_client_id = None
 
     def render(self):
         st.title('👤 Clients Management')
 
-        # Create two tabs: one to view all clients, one to add a new one
-        tab_view, tab_add = st.tabs(['📋 View Clients', '➕ Add New Client'])
+        if st.session_state.viewing_cases_for_client_id is not None:
+            self._render_client_cases_view()
 
-        with tab_view:
-            self._render_view_clients_tab()
+        else:
+            tab_view, tab_add = st.tabs(['📋 View Clients', '➕ Add New Client'])
 
-        with tab_add:
-            self._render_add_client_form()
+            with tab_view:
+                self._render_view_clients_tab()
+
+            with tab_add:
+                self._render_add_client_form()
 
     def _render_view_clients_tab(self):
         st.subheader('Active Client List')
@@ -46,17 +53,19 @@ class ClientsWindow:
             with col1:
                 st.markdown(f"**{client['name']}** (`{client['client_code']}`)")
             with col2:
-                st.write(client.get('email') or 'No email')
-            with col3:
+                st.write(f'{client.get('address', '')} , {client.get('zip_code')} {client.get('city', '')}')
                 st.write(f"Country: {client.get('country')}")
-            with col4:
-                # Update button sets the session state to the client's ID and reruns
-                if st.button('✏️', key=f"edit_{client['client_id']}"):
+                st.write(f'{client.get('phone', 'No phone')}, {client.get('email', 'No e-mail')}')
+                st.write(client.get('vat_number', ''))
+            with col3:
+                if st.button('✏️ Edit', key=f"edit_{client['client_id']}"):
                     st.session_state.editing_client_id = client['client_id']
                     st.rerun()
-            with col5:
-                # Deactivate button
-                if st.button('🗑️', key=f"deact_{client['client_id']}"):
+                     # Update button sets the session state to the client's ID and reruns
+                if st.button('📁 View Cases', key=f"cases_{client['client_id']}"):
+                    st.session_state.viewing_cases_for_client_id = client['client_id']
+                    st.rerun()
+                if st.button('🗑️ Deactivate', key=f"deact_{client['client_id']}"):
                     deact_success, msg = self.clients_service.deactivate_client(client['client_id'])
                     if deact_success:
                         st.success(f"Client '{client['name']}' deactivated.")
@@ -64,6 +73,42 @@ class ClientsWindow:
                     else:
                         st.error(msg)
             st.divider()
+
+    def _render_client_cases_view(self):
+        client_id = st.session_state.viewing_cases_for_client_id
+        cl_success, client_data = self.clients_service.get_client_by_id(client_id)
+        client_name = client_data['name'] if cl_success else 'Selected Client'
+        
+        st.subheader(f"📁 Open Cases for: {client_name}")
+
+        # Fetch and display the cases
+        case_success, cases = self.cases_service.get_open_cases_by_client(client_id)
+        
+        if not case_success:
+            st.error(f"Could not load cases: {cases}")
+        elif not cases:
+            st.info("This client has no open cases.")
+        else:
+            for case in cases:
+                col1, col2, col3 = st.columns([5, 3, 2])
+                with col1:
+                    st.markdown(f"**{case.get('title', 'No Title')}**")
+                    st.caption(f"Ref: {case.get('client_ref')}")
+                with col2:
+                    st.markdown(f"Jurisdiction: **{case.get('jurisdiction', 'N/A')}**")
+                    st.caption(f"Status: {case.get('status', 'N/A')}")
+                with col3:
+                    # This button sets the state for BOTH editing and navigation
+                    if st.button("▶️ Go to Case", key=f"goto_case_{case['case_id']}"):
+                        st.session_state.editing_case_id = case['case_id']
+                        st.session_state.page = 'Cases'
+                        st.rerun()
+                st.markdown("---")
+
+        # Button to go back to the main client list
+        if st.button("⬅️ Back to Client List"):
+            st.session_state.viewing_cases_for_client_id = None
+            st.rerun()
     
     def _render_add_client_form(self):
         with st.form("add_client_form", clear_on_submit=True):
