@@ -14,7 +14,7 @@ class PatentCaseManagementApp:
         
         # Create an instance of each "window", passing the required service to it
         self.clients_window = ClientsWindow(clients_service)
-        self.cases_window = CasesWindow(cases_service)
+        self.cases_window = CasesWindow(cases_service, clients_service)
         self.deadlines_window = DeadlinesWindow(deadlines_service)
 
     def run(self):
@@ -31,8 +31,7 @@ class PatentCaseManagementApp:
         elif page == 'Clients':
             self.clients_window.render()
         elif page == 'Cases':
-            # self.cases_window.render() # We will implement this later
-            st.info("The 'Cases' section is under construction.")
+            self.cases_window.render() # We will implement this later
         elif page == 'Deadlines':
             # self.deadlines_window.render() # We will implement this later
             st.info("The 'Deadlines' section is under construction.")
