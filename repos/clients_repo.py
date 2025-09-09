@@ -6,7 +6,7 @@ from database_handler.database_handler import DatabaseHandler
 
 class ClientsRepo(BaseRepo):
     def __init__(self, db_handler: DatabaseHandler):
-        super().__init__('Clients', db_handler)
+        super().__init__('clients', db_handler)
         self.allowed_columns = [
             'client_id',
             'client_code',

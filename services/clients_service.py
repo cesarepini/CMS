@@ -33,7 +33,7 @@ class ClientsService():
     def get_client_by_id(self, client_id: int) -> Tuple[bool, Union[Dict, None, Exception]]:
         return self.clients_repo.get_client_by_id(client_id, 'client_id')
     
-    def insert_client(self, client_data: dict) -> Tuple[bool, Union[Dict, None, Exception]]:
+    def insert_client(self, client_data: dict) -> Tuple[bool, Union[int, Exception]]:
         errors = self._validate_client_data(client_data)
         if errors:
             return (False, ValueError(' '.join(errors)))
@@ -51,7 +51,7 @@ class ClientsService():
             client_data
         )
     
-    def update_client(self, client_data: dict) -> Tuple[bool, Union[Dict, None, Exception]]:
+    def update_client(self, client_data: dict) -> Tuple[bool, Union[int, Exception]]:
         if 'client_id' not in client_data or not client_data['client_id']:
             return (False, ValueError('Client ID must be provided.'))
         errors = self._validate_client_data(client_data)
@@ -70,7 +70,7 @@ class ClientsService():
         client_id = client_data.pop('client_id')
         return self.clients_repo.update_client(client_data, client_id)
     
-    def deactivate_client(self, client_id: int) -> Tuple[bool, Union[int, str, Exception]]:
+    def deactivate_client(self, client_id: int) -> Tuple[bool, Union[int, Exception]]:
         success, open_cases = self.cases_repo.get_open_cases_by_client(client_id)
         if not success:
             return False, open_cases

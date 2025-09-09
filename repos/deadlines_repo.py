@@ -6,7 +6,7 @@ from database_handler.database_handler import DatabaseHandler
 
 class DeadlinesRepo(BaseRepo):
     def __init__(self, db_handler: DatabaseHandler):
-        super().__init__('Deadlines', db_handler)
+        super().__init__('deadlines', db_handler)
         self.allowed_columns = [
             'deadline_id',
             'case_id',

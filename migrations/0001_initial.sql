@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS deadlines (
 
 -- Audit field table: for fields in the the db --
 CREATE TABLE IF NOT EXISTS audit_records(
-    audit_field_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    audit_record_id INTEGER PRIMARY KEY AUTOINCREMENT,
     table_name TEXT NOT NULL CHECK(LENGTH(table_name)>0),
     action TEXT NOT NULL CHECK(action in ('insert', 'update', 'delete')),
     table_record_id INTEGER NOT NULL,

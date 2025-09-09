@@ -61,7 +61,7 @@ class CasesService():
     def get_case_by_id(self, case_id: int) -> Tuple[bool, Union[Dict, None, Exception]]:
         return self.cases_repo.get_case_by_id(case_id, 'case_id')
     
-    def insert_case(self, case_data: dict) -> Tuple[bool, Union[Dict, None, Exception]]:
+    def insert_case(self, case_data: dict) -> Tuple[bool, Union[int, Exception]]:
         errors = self._validate_case_data(case_data)
         if errors:
             return (False, ValueError(' '.join(errors)))
@@ -79,7 +79,7 @@ class CasesService():
             case_data
         )
     
-    def update_case(self, case_data: dict) -> Tuple[bool, Union[Dict, None, Exception]]:
+    def update_case(self, case_data: dict) -> Tuple[bool, Union[int, Exception]]:
         if 'case_id' not in case_data or not case_data['case_id']:
             return (False, ValueError('Case ID is required.'))
         errors = self._validate_case_data(case_data)
@@ -98,7 +98,7 @@ class CasesService():
         case_id = case_data.pop('case_id')
         return self.cases_repo.update_case(case_data, case_id)
     
-    def close_case(self, case_id: int) -> Tuple[bool, Union[int, str, Exception]]:
+    def close_case(self, case_id: int) -> Tuple[bool, Union[int, Exception]]:
         success, open_deadlines = self.deadlines_repo.get_open_deadlines_by_case(case_id)
         if not success:
             return False, open_deadlines

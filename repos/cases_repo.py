@@ -7,7 +7,7 @@ from database_handler.database_handler import DatabaseHandler
 class CasesRepo(BaseRepo):
     
     def __init__(self, db_handler: DatabaseHandler):
-        super().__init__('Cases', db_handler)
+        super().__init__('cases', db_handler)
 
         self.allowed_columns = [
             'case_id',

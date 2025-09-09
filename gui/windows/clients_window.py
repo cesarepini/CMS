@@ -161,20 +161,56 @@ class ClientsWindow:
             st.session_state.viewing_cases_for_client_id = None
             st.rerun()
     
-    def _render_add_client_form(self):
+    def _render_add_client_form(self)->None:
         # ... logic for add form ...
         with st.form("add_client_form", clear_on_submit=True):
             st.subheader("Add a New Client")
-            name = st.text_input("Client Name*")
-            client_code = st.text_input("Client Code*", max_chars=3)
-            # ... other fields
-            country = st.text_input("Country Code*", max_chars=2)
-            submitted = st.form_submit_button("Add Client")
+            name = st.text_input('Client Name*', max_chars=100)
+            col1, col2 = st.columns(2)
+            with col1:
+                code = st.text_input('Client Code*', max_chars=3)
+                email = st.text_input('Email')
+                phone = st.text_input('Phone')
+                vat_number = st.text_input('VAT Number')
+                payment_term = st.number_input('Payment Term (days)', min_value=0, step=1)
+            with col2:
+                address = st.text_input('Address')
+                city = st.text_input('City')
+                zip_code = st.text_input('ZIP Code')
+                country = st.text_input('Country Code (ISO-2)*', max_chars=2)
+            notes = st.text_area('Notes')
+
+            submitted = st.form_submit_button('Add Client')
+
             if submitted:
-                client_data = {'name': name, 'client_code': client_code, 'country': country} # simplified for brevity
+                client_data = {
+                    'name': name,
+                    'client_code': code.upper(),
+                    'country': country.upper(),
+                    'email': email,
+                    'phone': phone,
+                    'address': address,
+                    'city': city,
+                    'zip_code': zip_code,
+                    'vat_number': vat_number,
+                    'payment_term': payment_term,
+                    'notes': notes
+                }
+
+                self.handle_add_client(client_data)
+
                 success, result = self.clients_service.insert_client(client_data)
                 if success: st.success("Client added successfully!")
                 else: st.error(f"Error: {result}")
+
+    def handle_add_client(self, client_data:dict) -> None:
+        success, result = self.clients_service.insert_client(client_data)
+        
+        if success:
+            st.success('Client added successfully.')
+            st.rerun()
+        else:
+            st.error(f'Error: {result}')
 
     def _render_update_client_form(self):
         # ... logic for update form ...
@@ -184,11 +220,36 @@ class ClientsWindow:
             st.error(f"Could not fetch client data: {client_data}")
             return
         with st.form("update_client_form"):
-            name = st.text_input("Client Name*", value=client_data.get('name'))
-            # ... other fields
+            name = st.text_input('Client Name*', max_chars=100)
+            col1, col2 = st.columns(2)
+            with col1:
+                code = st.text_input('Client Code*', max_chars=3)
+                email = st.text_input('Email')
+                phone = st.text_input('Phone')
+                vat_number = st.text_input('VAT Number')
+                payment_term = st.number_input('Payment Term (days)', min_value=0, step=1)
+            with col2:
+                address = st.text_input('Address')
+                city = st.text_input('City')
+                zip_code = st.text_input('ZIP Code')
+                country = st.text_input('Country Code (ISO-2)*', max_chars=2)
+            notes = st.text_area('Notes')
             submitted = st.form_submit_button("Save Changes")
             if submitted:
-                updated_data = {'client_id': st.session_state.editing_client_id, 'name': name} # simplified for brevity
+                updated_data = {
+                    'client_id': st.session_state.editing_client_id,
+                    'name': name,
+                    'client_code': code.upper(),
+                    'country': country.upper(),
+                    'email': email,
+                    'phone': phone,
+                    'address': address,
+                    'city': city,
+                    'zip_code': zip_code,
+                    'vat_number': vat_number,
+                    'payment_term': payment_term,
+                    'notes': notes
+                    }
                 upd_success, result = self.clients_service.update_client(updated_data)
                 if upd_success:
                     st.success("Client updated successfully!")

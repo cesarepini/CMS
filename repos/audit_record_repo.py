@@ -6,9 +6,9 @@ from database_handler.database_handler import DatabaseHandler
 
 class AuditRecordsRepo(BaseRepo):
     def __init__(self, db_handler: DatabaseHandler):
-        super().__init__('Deadlines', db_handler)
+        super().__init__('audit_records', db_handler)
         self.allowed_columns = [
-            'audit_field_id',
+            'audit_record_id',
             'table_name',
             'action',
             'table_record_id',
