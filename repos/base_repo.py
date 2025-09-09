@@ -17,6 +17,15 @@ class BaseRepo:
             'audit_records',
             'audit_logs'
         ]
+        self._validate_table_name(self.table_name)
+
+    @property
+    def table_name(self) -> str:
+        return self._table_name
+
+    @table_name.setter
+    def table_name(self, value):
+        raise AttributeError("table_name is immutable.")
 
     # --- Validation functions to minimize SQL injection risk --- #
     def _validate_table_name(self, table_name:str) -> None | ValueError:
@@ -24,6 +33,8 @@ class BaseRepo:
             raise ValueError(f'Disallowed table name {table_name}')
 
     def _validate_field_names(self, field_names: List[str]) -> None | ValueError:
+        if not self.allowed_columns:
+            raise RuntimeError("allowed_columns not set.")
         for field_name in field_names:
             if field_name not in self.allowed_columns:
                 raise ValueError(f'Disallowed field name {field_name}')
@@ -35,6 +46,7 @@ class BaseRepo:
             params: tuple = ()
             ) -> Tuple[bool, Union[List[Dict], Exception]]:
         try:
+            self._validate_table_name(self.table_name)
             with self.db_handler as conn:
                 cursor = conn.cursor()
                 rows = cursor.execute(query, params)
@@ -49,6 +61,7 @@ class BaseRepo:
             params: tuple = ()
             ) -> Tuple[bool, Union[dict, None, Exception]]:
         try:
+            self._validate_table_name(self.table_name)
             with self.db_handler as conn:
                 cursor = conn.cursor()
                 row = cursor.execute(query, params).fetchone()
@@ -72,6 +85,7 @@ class BaseRepo:
             params: tuple = ()
             ) -> Tuple[bool, Union[int, Exception]]:
         try:
+            self._validate_table_name(self.table_name)
             with self.db_handler as conn:
                 cursor = conn.cursor()
                 cursor.execute(query, params)
