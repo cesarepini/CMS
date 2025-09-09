@@ -1,5 +1,6 @@
 # gui/windows/cases_window.py
 import csv
+import io
 from tkinter import filedialog
 import streamlit as st
 import pandas as pd
@@ -20,25 +21,39 @@ class CasesWindow:
 
         inport_action = st.button("Inport Cases")
         if inport_action:
-            file_path = filedialog.askopenfilename(
-                title='Select a CSV file',
-                filetypes = [('CSV Files', '*.csv')]
+            file = st.file_uploader(
+                "Choose a clients CSV file", 
+                type="csv", 
+                key="cases_uploader"
             )
-            if file_path:
+            print(file)
+            if file:
+                print('Debug')
                 try:
-                    with open(file_path, mode='r', encoding='utf-8') as csvfile:
-                        reader = csv.DictReader(csvfile)
+                    print('Debug0')
+                    # To read the file content, we decode it from bytes to a string
+                    string_data = file.getvalue().decode("utf-8")
+                    # We use io.StringIO to treat the string as a file for the csv reader
+                    string_io = io.StringIO(string_data)
+                    
+                    reader = csv.DictReader(string_io)
+                    
+                    # We use an expander to show the data before importing
+                    with st.expander("Preview CSV Data"):
+                        print('Debug1')
+                        st.dataframe(pd.read_csv(file))
+
+                    with st.spinner("Importing..."):
                         for row in reader:
-                            print(f"Importing case: {row['client_id']}-row{['client_ref']}...")
-                            # The service layer already handles data validation and processing
-                            success, result = self.cases_service.insert_case(row)
+                            success, result = self.clients_service.insert_client(row)
                             if success:
-                                print(f"  ✅ SUCCESS: case '{row['client_id']}-{row['client_ref']}' added.")
+                                st.success(f"Successfully imported case: {row.get('client_ref')}")
                             else:
-                                print(f"  ❌ FAILED: {result}")
-                except FileNotFoundError:
-                    print(f"Error: Could not find the file {file_path}")
-                print("--- Case Import Finished ---\n")
+                                st.error(f"Failed to import case {row.get('client_ref')}: {result}")
+                    st.rerun() # Refresh the app to show new clients
+
+                except Exception as e:
+                    st.error(f"An error occurred while processing the file: {e}")
         
         tab_view, tab_add = st.tabs(['📋 View Open Cases', '➕ Add New Case'])
 

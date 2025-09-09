@@ -1,6 +1,7 @@
 # gui/windows/clients_window.py
 import csv
-from tkinter import filedialog
+import io
+
 import streamlit as st
 import pandas as pd
 from services.clients_service import ClientsService
@@ -19,39 +20,50 @@ class ClientsWindow:
     def render(self):
         st.title('👤 Clients Management')
 
-        inport_action = st.button("Inport Clients")
-        if inport_action:
-            st.write('Inport Button clicked!')
-            file_path = filedialog.askopenfilename(
-                title='Select a CSV file',
-                filetypes = [('CSV Files', '*.csv')]
-            )
-            if file_path:
-                try:
-                    with open(file_path, mode='r', encoding='utf-8') as csvfile:
-                        reader = csv.DictReader(csvfile)
-                        for row in reader:
-                            print(f"Importing client: {row['name']}...")
-                            # The service layer already handles data validation and processing
-                            success, result = self.clients_service.insert_client(row)
-                            if success:
-                                print(f"  ✅ SUCCESS: Client '{row['name']}' added.")
-                            else:
-                                print(f"  ❌ FAILED: {result}")
-                except FileNotFoundError:
-                    print(f"Error: Could not find the file {file_path}")
-                print("--- Client Import Finished ---\n")
-
         if st.session_state.viewing_cases_for_client_id is not None:
             self._render_client_cases_view()
+            return
+
+        inport_action = st.button("Inport Clients")
+        if inport_action:
+            file = st.file_uploader(
+                "Choose a clients CSV file", 
+                type="csv", 
+                key="clients_uploader"
+            )
+            if file is not None:
+                try:
+                    # To read the file content, we decode it from bytes to a string
+                    string_data = file.getvalue().decode("utf-8")
+                    # We use io.StringIO to treat the string as a file for the csv reader
+                    string_io = io.StringIO(string_data)
+                    
+                    reader = csv.DictReader(string_io)
+                    
+                    # We use an expander to show the data before importing
+                    with st.expander("Preview CSV Data"):
+                        st.dataframe(pd.read_csv(file))
+
+                    if st.button("Import these clients"):
+                        with st.spinner("Importing..."):
+                            for row in reader:
+                                success, result = self.clients_service.insert_client(row)
+                                if success:
+                                    st.success(f"Successfully imported client: {row.get('name')}")
+                                else:
+                                    st.error(f"Failed to import client {row.get('name')}: {result}")
+                        st.rerun() # Refresh the app to show new clients
+
+                except Exception as e:
+                    st.error(f"An error occurred while processing the file: {e}")
 
         else:
             tab_view, tab_add = st.tabs(['📋 View Clients', '➕ Add New Client'])
 
             with tab_view:
                 self._render_view_clients_tab()
-
             with tab_add:
+                st.subheader("Add new client")
                 self._render_add_client_form()
 
     def _render_view_clients_tab(self):
