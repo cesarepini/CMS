@@ -1,7 +1,7 @@
 -- Clients table
 CREATE TABLE IF NOT EXISTS clients (
     client_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    client_code TEXT NOT NULL CHECK(LENGTH(client_code)=3),
+    client_code TEXT NOT NULL UNIQUE CHECK(LENGTH(client_code)=3),
     name TEXT NOT NULL CHECK(LENGTH(name) > 0),
     address TEXT, 
     zip_code TEXT, 

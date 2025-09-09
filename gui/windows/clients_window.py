@@ -1,4 +1,6 @@
 # gui/windows/clients_window.py
+import csv
+from tkinter import filedialog
 import streamlit as st
 import pandas as pd
 from services.clients_service import ClientsService
@@ -16,6 +18,29 @@ class ClientsWindow:
 
     def render(self):
         st.title('👤 Clients Management')
+
+        inport_action = st.button("Inport Clients")
+        if inport_action:
+            st.write('Inport Button clicked!')
+            file_path = filedialog.askopenfilename(
+                title='Select a CSV file',
+                filetypes = [('CSV Files', '*.csv')]
+            )
+            if file_path:
+                try:
+                    with open(file_path, mode='r', encoding='utf-8') as csvfile:
+                        reader = csv.DictReader(csvfile)
+                        for row in reader:
+                            print(f"Importing client: {row['name']}...")
+                            # The service layer already handles data validation and processing
+                            success, result = self.clients_service.insert_client(row)
+                            if success:
+                                print(f"  ✅ SUCCESS: Client '{row['name']}' added.")
+                            else:
+                                print(f"  ❌ FAILED: {result}")
+                except FileNotFoundError:
+                    print(f"Error: Could not find the file {file_path}")
+                print("--- Client Import Finished ---\n")
 
         if st.session_state.viewing_cases_for_client_id is not None:
             self._render_client_cases_view()
@@ -51,7 +76,7 @@ class ClientsWindow:
         for client in clients:
             col1, col2, col3, col4, col5 = st.columns([4, 4, 2, 1, 1])
             with col1:
-                st.markdown(f"**{client['name']}** (`{client['client_code']}`)")
+                st.markdown(f"**{client['name']}** (`{client['client_id']} - {client['client_code']}`)")
             with col2:
                 st.write(f'{client.get('address', '')} , {client.get('zip_code')} {client.get('city', '')}')
                 st.write(f"Country: {client.get('country')}")
