@@ -23,40 +23,6 @@ class ClientsWindow:
         if st.session_state.viewing_cases_for_client_id is not None:
             self._render_client_cases_view()
             return
-
-        inport_action = st.button("Inport Clients")
-        if inport_action:
-            file = st.file_uploader(
-                "Choose a clients CSV file", 
-                type="csv", 
-                key="clients_uploader"
-            )
-            if file is not None:
-                try:
-                    # To read the file content, we decode it from bytes to a string
-                    string_data = file.getvalue().decode("utf-8")
-                    # We use io.StringIO to treat the string as a file for the csv reader
-                    string_io = io.StringIO(string_data)
-                    
-                    reader = csv.DictReader(string_io)
-                    
-                    # We use an expander to show the data before importing
-                    with st.expander("Preview CSV Data"):
-                        st.dataframe(pd.read_csv(file))
-
-                    if st.button("Import these clients"):
-                        with st.spinner("Importing..."):
-                            for row in reader:
-                                success, result = self.clients_service.insert_client(row)
-                                if success:
-                                    st.success(f"Successfully imported client: {row.get('name')}")
-                                else:
-                                    st.error(f"Failed to import client {row.get('name')}: {result}")
-                        st.rerun() # Refresh the app to show new clients
-
-                except Exception as e:
-                    st.error(f"An error occurred while processing the file: {e}")
-
         else:
             tab_view, tab_add = st.tabs(['📋 View Clients', '➕ Add New Client'])
 
@@ -65,6 +31,51 @@ class ClientsWindow:
             with tab_add:
                 st.subheader("Add new client")
                 self._render_add_client_form()
+                st.divider()
+                st.subheader("Or Import Clients from CSV")
+                self._render_batch_import_clients()
+
+    def _render_batch_import_clients(self) -> None:
+        # 1. Display the file uploader widget unconditionally
+        uploaded_file = st.file_uploader("Choose a clients CSV file", type="csv", key="clients_uploader")
+
+        # 2. The rest of the logic only runs AFTER a file has been uploaded
+        if uploaded_file is not None:
+            try:
+                # To read the file content, we need to decode it from bytes to a string
+                string_data = uploaded_file.getvalue().decode("utf-8")
+                # Use io.StringIO to treat the string as a file for the csv reader
+                string_io = io.StringIO(string_data)
+                
+                # Make a copy for the preview, as the reader will consume the original
+                preview_io = io.StringIO(string_data)
+                
+                reader = csv.DictReader(string_io)
+                rows_to_import = list(reader) # Read all rows into a list
+                
+                with st.expander(f"Preview {len(rows_to_import)} clients to import"):
+                    st.dataframe(pd.read_csv(preview_io))
+
+                # 3. Show a confirmation button only after the file is loaded and previewed
+                if st.button("Confirm and Import Clients"):
+                    progress_bar = st.progress(0, text="Starting import...")
+                    success_count = 0
+                    
+                    for i, row in enumerate(rows_to_import):
+                        success, result = self.clients_service.insert_client(row)
+                        if success:
+                            success_count += 1
+                        else:
+                            st.error(f"Failed to import client '{row.get('name', 'N/A')}': {result}")
+                        
+                        # Update progress bar
+                        progress_bar.progress((i + 1) / len(rows_to_import), text=f"Importing {row.get('name')}...")
+
+                    st.success(f"Import complete! {success_count} of {len(rows_to_import)} clients imported successfully.")
+                    st.rerun()
+
+            except Exception as e:
+                st.error(f"An error occurred while processing the file: {e}")
 
     def _render_view_clients_tab(self):
         st.subheader('Active Client List')
