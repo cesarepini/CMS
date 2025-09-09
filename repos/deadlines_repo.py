@@ -17,7 +17,7 @@ class DeadlinesRepo(BaseRepo):
             'completed',
             'created_at',
             'updated_at',
-            'deactivated_at'
+            'completed_at'
         ]
 
     def get_all_deadlines(self) -> Tuple[bool, Union[List[Dict], Exception]]:

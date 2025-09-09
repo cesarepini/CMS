@@ -15,7 +15,7 @@ class PatentCaseManagementApp:
         # Create an instance of each "window", passing the required service to it
         self.clients_window = ClientsWindow(clients_service, cases_service)
         self.cases_window = CasesWindow(cases_service, clients_service)
-        self.deadlines_window = DeadlinesWindow(deadlines_service)
+        self.deadlines_window = DeadlinesWindow(deadlines_service, cases_service, clients_service)
 
     def run(self):
         # Configure the page to use a wide layout for more space
@@ -37,5 +37,4 @@ class PatentCaseManagementApp:
         elif st.session_state.page == 'Cases':
             self.cases_window.render() # We will implement this later
         elif st.session_state.page == 'Deadlines':
-            # self.deadlines_window.render() # We will implement this later
-            st.info("The 'Deadlines' section is under construction.")
+            self.deadlines_window.render() # We will implement this later
