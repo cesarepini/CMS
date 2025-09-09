@@ -15,6 +15,8 @@ class CasesWindow:
         # Session state for editing a case
         if 'editing_case_id' not in st.session_state:
             st.session_state.editing_case_id = None
+        if 'cases_uploader_version' not in st.session_state:
+            st.session_state.cases_uploader_version = 0
 
     def render(self):
         st.title('📁 Cases Management')
@@ -32,75 +34,68 @@ class CasesWindow:
             self._render_batch_import_cases() # Use a dedicated method
 
     def _render_batch_import_cases(self):
-        """
-        Handles the UI for uploading a CSV file for batch case import.
-        This function's only job is to display the uploader and the confirmation button.
-        """
-        uploaded_file = st.file_uploader(
+        # Use a versioned key so bumping the counter creates a brand-new widget
+        uploader_key = f"cases_uploader:{st.session_state.cases_uploader_version}"
+
+        st.file_uploader(
             "Choose a cases CSV file",
             type="csv",
-            key="cases_uploader"  # The key for this specific uploader.
+            key=uploader_key
         )
 
-        if uploaded_file is not None:
-            # The button's on_click parameter points to the callback function.
-            # This is the key to the solution. The import logic will only run
-            # inside the callback, in between script runs.
-            st.button(
-                "Confirm and Import Cases", 
-                on_click=self._handle_case_import, 
-                args=(uploaded_file,)
-            )
+        # Import button always rendered; callback will warn if no file selected
+        st.button(
+            "Confirm and Import Cases",
+            on_click=self._handle_case_import
+        )
+        # Show post-import message from last callback (then clear it)
+        msg = st.session_state.pop("case_import_msg", None)
+        if msg:
+            level, text = msg
+            getattr(st, level)(text)
+        # (Optional) Manual reset button
+        # if st.button("Reset uploader"):
+        #     st.session_state.cases_uploader_version += 1
+        #     st.rerun()
 
-    # Replace your existing _handle_case_import method with this one.
-    def _handle_case_import(self, uploaded_file):
-        """
-        This is the callback function. It runs AFTER the 'Confirm' button is clicked
-        but BEFORE the page reruns. This is the safe place to process data and
-        modify session state.
-        """
+    # --- UPDATED CALLBACK (no args) ---
+    def _handle_case_import(self):
+        # Read the file from the current uploader key
+        uploader_key = f"cases_uploader:{st.session_state.cases_uploader_version}"
+        uploaded_file = st.session_state.get(uploader_key)
+
+        if not uploaded_file:
+            st.session_state["case_import_msg"] = ("warning", "No file selected. Please choose a CSV file first.")
+            return
+
         try:
             with st.spinner("Importing..."):
                 string_data = uploaded_file.getvalue().decode("utf-8")
                 string_io = io.StringIO(string_data)
                 reader = csv.DictReader(string_io)
                 rows_to_import = list(reader)
-                
+
                 success_count = 0
                 for row in rows_to_import:
-                    # Your note about matching IDs from another DB is important here.
-                    # As long as your CSV row contains all the necessary data for
-                    # the insert_case method, this will work.
-                    
-                    # You may still need the logic to look up client_id from client_code
-                    # if your CSV does not contain the client_id directly.
-                    client_code = row.get('client_code')
-                    if client_code and 'client_id' not in row:
-                        cl_success, client = self.clients_service.get_client_by_code(client_code)
-                        if cl_success and client:
-                            row['client_id'] = client['client_id']
-                        else:
-                            st.error(f"Client with code '{client_code}' not found. Skipping case: {row.get('client_ref')}")
-                            continue
-
                     success, result = self.cases_service.insert_case(row)
                     if success:
                         success_count += 1
                     else:
                         st.error(f"Failed to import case '{row.get('client_ref', 'N/A')}': {result}")
-                
-                if success_count > 0:
-                    st.success(f"Import complete! {success_count} of {len(rows_to_import)} cases imported successfully.")
 
+                st.success(
+                    f"Import complete! {success_count} of {len(rows_to_import)} cases imported successfully."
+                )
+                st.session_state["case_import_msg"] = (
+                    "success",
+                    f"Import complete! {success_count} of {len(rows_to_import)} cases imported successfully."
+                )
         except Exception as e:
-            st.error(f"An error occurred while processing the file: {e}")
-        
-        # This is the critical line. It is now inside the callback,
-        # so it executes safely before the next rerun. This will fix the error.
-        st.session_state.cases_uploader = None
-
-        # Clear the state safely inside the callback
-        st.session_state.cases_uploader = None
+            st.session_state["case_import_msg"] = ("error", f"An error occurred while processing the file: {e}")
+            return
+        finally:
+            # “Reset” uploader by rotating the key; no st.rerun() needed
+            st.session_state.cases_uploader_version += 1
 
     def _render_view_cases_tab(self):
         st.subheader('Active Case List')

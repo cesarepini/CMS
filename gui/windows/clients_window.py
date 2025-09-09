@@ -14,6 +14,9 @@ class ClientsWindow:
             st.session_state.editing_client_id = None
         if 'viewing_cases_for_client_id' not in st.session_state:
             st.session_state.viewing_cases_for_client_id = None
+        # NEW: a version counter used to "reset" the file_uploader
+        if 'clients_uploader_version' not in st.session_state:
+            st.session_state.clients_uploader_version = 0
 
     def render(self):
         st.title('👤 Clients Management')
@@ -34,29 +37,41 @@ class ClientsWindow:
             self._render_batch_import_clients()
 
     def _render_batch_import_clients(self):
-        uploaded_file = st.file_uploader(
-            "Choose a clients CSV file", 
-            type="csv", 
-            key="clients_uploader"
+        # Use a versioned key so bumping the counter creates a brand-new widget
+        uploader_key = f"clients_uploader:{st.session_state.clients_uploader_version}"
+
+        st.file_uploader(
+            "Choose a clients CSV file",
+            type="csv",
+            key=uploader_key
         )
 
-        if uploaded_file is not None:
-            # The button's logic is now handled by the 'on_click' callback.
-            st.button(
-                "Confirm and Import Clients", 
-                on_click=self._handle_client_import, 
-                args=(uploaded_file,)
-            )
+        # Don’t pass the file via args; read it inside the callback from session_state
+        st.button(
+            "Confirm and Import Clients",
+            on_click=self._handle_client_import
+        )
+        msg = st.session_state.pop("client_import_msg", None)
+        if msg:
+            level, text = msg
+            getattr(st, level)(text)
 
-    def _handle_client_import(self, uploaded_file):
-        # This function is the callback. It runs safely between reruns.
+    def _handle_client_import(self):
+        # Read the current file from the current uploader key
+        uploader_key = f"clients_uploader:{st.session_state.clients_uploader_version}"
+        uploaded_file = st.session_state.get(uploader_key)
+
+        if not uploaded_file:
+            st.session_state["client_import_msg"] = ("warning", "No file selected. Please choose a CSV file first.")
+            return
+
         try:
             with st.spinner("Importing..."):
                 string_data = uploaded_file.getvalue().decode("utf-8")
                 string_io = io.StringIO(string_data)
                 reader = csv.DictReader(string_io)
                 rows_to_import = list(reader)
-                
+
                 success_count = 0
                 for row in rows_to_import:
                     success, result = self.clients_service.insert_client(row)
@@ -64,14 +79,20 @@ class ClientsWindow:
                         success_count += 1
                     else:
                         st.error(f"Failed to import client '{row.get('name', 'N/A')}': {result}")
-                
-                st.success(f"Import complete! {success_count} of {len(rows_to_import)} clients imported successfully.")
-                
+
+                st.success(
+                    f"Import complete! {success_count} of {len(rows_to_import)} clients imported successfully."
+                )
+                st.session_state["client_import_msg"] = (
+                    "success",
+                    f"Import complete! {success_count} of {len(rows_to_import)} clients imported successfully."
+                )
         except Exception as e:
-            st.error(f"An error occurred while processing the file: {e}")
-        
-        # This line is now safe because it's inside the callback.
-        st.session_state.clients_uploader = None
+            st.session_state["client_import_msg"] = ("error", f"An error occurred while processing the file: {e}")
+            return
+        finally:
+            # “Reset” uploader by rotating the key; no st.rerun() needed
+            st.session_state.clients_uploader_version += 1
 
     def _render_view_clients_tab(self):
         st.subheader('Active Client List')
