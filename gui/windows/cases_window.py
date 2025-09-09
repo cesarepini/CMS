@@ -18,42 +18,6 @@ class CasesWindow:
 
     def render(self):
         st.title('📁 Cases Management')
-
-        inport_action = st.button("Inport Cases")
-        if inport_action:
-            file = st.file_uploader(
-                "Choose a clients CSV file", 
-                type="csv", 
-                key="cases_uploader"
-            )
-            print(file)
-            if file:
-                print('Debug')
-                try:
-                    print('Debug0')
-                    # To read the file content, we decode it from bytes to a string
-                    string_data = file.getvalue().decode("utf-8")
-                    # We use io.StringIO to treat the string as a file for the csv reader
-                    string_io = io.StringIO(string_data)
-                    
-                    reader = csv.DictReader(string_io)
-                    
-                    # We use an expander to show the data before importing
-                    with st.expander("Preview CSV Data"):
-                        print('Debug1')
-                        st.dataframe(pd.read_csv(file))
-
-                    with st.spinner("Importing..."):
-                        for row in reader:
-                            success, result = self.clients_service.insert_client(row)
-                            if success:
-                                st.success(f"Successfully imported case: {row.get('client_ref')}")
-                            else:
-                                st.error(f"Failed to import case {row.get('client_ref')}: {result}")
-                    st.rerun() # Refresh the app to show new clients
-
-                except Exception as e:
-                    st.error(f"An error occurred while processing the file: {e}")
         
         tab_view, tab_add = st.tabs(['📋 View Open Cases', '➕ Add New Case'])
 
@@ -61,7 +25,51 @@ class CasesWindow:
             self._render_view_cases_tab()
 
         with tab_add:
+            st.subheader("Add a Single Case")
             self._render_add_case_form()
+            st.divider()
+            st.subheader("Or Import Cases from CSV")
+            self._render_batch_import_cases() # Use a dedicated method
+
+    def _render_batch_import_cases(self):
+        uploaded_file = st.file_uploader(
+        "Choose a cases CSV file",
+        type="csv",
+        key="cases_uploader"
+    )
+
+        if uploaded_file is not None:
+            st.button(
+                "Confirm and Import Cases", 
+                on_click=self._handle_case_import, 
+                args=(uploaded_file,)
+            )
+
+    # --- NEW CALLBACK METHOD ---
+    def _handle_case_import(self, uploaded_file):
+        try:
+           with st.spinner("Importing..."):
+                string_data = uploaded_file.getvalue().decode("utf-8")
+                string_io = io.StringIO(string_data)
+                reader = csv.DictReader(string_io)
+                rows_to_import = list(reader)
+                
+                success_count = 0
+                for row in rows_to_import:
+                    print(row)
+                    success, result = self.cases_service.insert_case(row)
+                    if success:
+                        success_count += 1
+                    else:
+                        st.error(f"Failed to import case '{row.get('client_ref', 'N/A')}': {result}")
+                
+                st.success(f"Import complete! {success_count} of {len(rows_to_import)} cases imported successfully.")
+                
+        except Exception as e:
+            st.error(f"An error occurred while processing the file: {e}")
+
+        # Clear the state safely inside the callback
+        st.session_state.cases_uploader = None
 
     def _render_view_cases_tab(self):
         st.subheader('Active Case List')

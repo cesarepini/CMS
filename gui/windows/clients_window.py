@@ -35,47 +35,49 @@ class ClientsWindow:
                 st.subheader("Or Import Clients from CSV")
                 self._render_batch_import_clients()
 
-    def _render_batch_import_clients(self) -> None:
-        # 1. Display the file uploader widget unconditionally
-        uploaded_file = st.file_uploader("Choose a clients CSV file", type="csv", key="clients_uploader")
+    
+    def _render_batch_import_clients(self):
+        uploaded_file = st.file_uploader(
+            "Choose a clients CSV file", 
+            type="csv", 
+            key="clients_uploader"
+        )
 
-        # 2. The rest of the logic only runs AFTER a file has been uploaded
         if uploaded_file is not None:
-            try:
-                # To read the file content, we need to decode it from bytes to a string
+            # We pass the uploaded_file object to the callback function using 'args'
+            st.button(
+                "Confirm and Import Clients", 
+                on_click=self._handle_client_import, 
+                args=(uploaded_file,)
+            )
+
+    # --- NEW CALLBACK METHOD ---
+    # The logic from inside the 'if st.button(...)' block is moved here.
+    def _handle_client_import(self, uploaded_file):
+        try:
+            with st.spinner("Importing..."):
                 string_data = uploaded_file.getvalue().decode("utf-8")
-                # Use io.StringIO to treat the string as a file for the csv reader
                 string_io = io.StringIO(string_data)
-                
-                # Make a copy for the preview, as the reader will consume the original
-                preview_io = io.StringIO(string_data)
-                
                 reader = csv.DictReader(string_io)
-                rows_to_import = list(reader) # Read all rows into a list
+                rows_to_import = list(reader)
                 
-                with st.expander(f"Preview {len(rows_to_import)} clients to import"):
-                    st.dataframe(pd.read_csv(preview_io))
-
-                # 3. Show a confirmation button only after the file is loaded and previewed
-                if st.button("Confirm and Import Clients"):
-                    progress_bar = st.progress(0, text="Starting import...")
-                    success_count = 0
-                    
-                    for i, row in enumerate(rows_to_import):
-                        success, result = self.clients_service.insert_client(row)
-                        if success:
-                            success_count += 1
-                        else:
-                            st.error(f"Failed to import client '{row.get('name', 'N/A')}': {result}")
-                        
-                        # Update progress bar
-                        progress_bar.progress((i + 1) / len(rows_to_import), text=f"Importing {row.get('name')}...")
-
-                    st.success(f"Import complete! {success_count} of {len(rows_to_import)} clients imported successfully.")
-                    st.rerun()
-
-            except Exception as e:
-                st.error(f"An error occurred while processing the file: {e}")
+                success_count = 0
+                for row in rows_to_import:
+                    success, result = self.clients_service.insert_client(row)
+                    if success:
+                        success_count += 1
+                    else:
+                        st.error(f"Failed to import client '{row.get('name', 'N/A')}': {result}")
+                
+                st.success(f"Import complete! {success_count} of {len(rows_to_import)} clients imported successfully.")
+                
+        except Exception as e:
+            st.error(f"An error occurred while processing the file: {e}")
+        
+        # Now we clear the state. This is safe inside a callback.
+        # We don't need st.rerun() because the button click will trigger it automatically.
+        st.session_state.clients_uploader = None
+    
 
     def _render_view_clients_tab(self):
         st.subheader('Active Client List')
