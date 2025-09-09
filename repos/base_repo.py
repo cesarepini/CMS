@@ -10,12 +10,25 @@ class BaseRepo:
         self.db_handler = db_handler
         self.table_name = table_name
         self.allowed_columns = []
+        self.allowed_table_names = [
+            'clients',
+            'cases',
+            'deadliines',
+            'audit_records',
+            'audit_logs'
+        ]
+
+    # --- Validation functions to minimize SQL injection risk --- #
+    def _validate_table_name(self, table_name:str) -> None | ValueError:
+        if table_name not in self.allowed_table_names:
+            raise ValueError(f'Disallowed table name {table_name}')
 
     def _validate_field_names(self, field_names: List[str]) -> None | ValueError:
         for field_name in field_names:
             if field_name not in self.allowed_columns:
                 raise ValueError(f'Disallowed field name {field_name}')
 
+    # --- Function for running a query retunrning multiple records --- #
     def _run_query(
             self,
             query: str,
@@ -29,6 +42,7 @@ class BaseRepo:
         except sqlite3.Error as e:
             return (False, e)
 
+    # --- Function for running a query retunrning a single record --- #
     def _run_query_one(
             self,
             query: str,
@@ -41,9 +55,11 @@ class BaseRepo:
             return (True, dict(row)) if row else (True, None)
         except sqlite3.Error as e:
             return (False, e)
-        
+    
+    # --- Function for running a query retunrning a single record, identified by the id --- #
     def _get_record_by_id(self, id_field:str, id_value:int) -> Tuple[bool, Union[dict, None, Exception]]:
         try:
+            self._validate_table_name(self.table_name)
             self._validate_field_names([id_field])
             query = f'SELECT * FROM {self.table_name} WHERE {id_field} = ?'
             return self._run_query_one(query, (id_value,))
@@ -69,6 +85,7 @@ class BaseRepo:
             data:dict
             ) -> Tuple[bool, Union[int, Exception]]:
         try:
+            self._validate_table_name(self.table_name)
             field_names = list(data.keys())
             self._validate_field_names(field_names)
             columns = ', '.join(data.keys())
@@ -85,6 +102,7 @@ class BaseRepo:
                     updates: dict
                     ) -> Tuple[bool, Union[int, Exception]]:
         try:
+            self._validate_table_name(self.table_name)
             field_names = list(updates.keys())
             field_names.append(id_field)
             self._validate_field_names(field_names)
